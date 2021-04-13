@@ -19,7 +19,7 @@ import time
 import logging
 from utils.log_helper import init_log
 from torch.autograd import Variable
-import mmcv
+#import mmcv
 init_log('global', logging.INFO)
 logger = logging.getLogger('global')
 
@@ -59,6 +59,7 @@ parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--save_model_interval', type=int, default=10000)
 parser.add_argument('--parallel', action='store_true')
 parser.add_argument('--print_freq', type=int, default=20)
+parser.add_argument('--scene_dir', type=str, required=True)
 
 def train_transform():
     transform_list = [
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     # styler.load_state_dict(torch.load('exp/set8/checkpoint/decoder_iter_50.pth.tar'))
     # styler.load_state_dict(torch.load('experiments-c32//model_iter_320000.pth.tar')['state_dict'], strict=False)
     # styler.load_state_dict(torch.load('experiments/model_iter_600000.pth.tar')['state_dict'], strict=True)
-    styler.load_state_dict(torch.load('exp/set8/checkpoint/decoder_iter_85.pth.tar')['state_dict'], strict=True)
+    styler.load_state_dict(torch.load('21styles.pth.tar', map_location="cpu"), strict=False)
 
     styler = styler.cuda()
 
@@ -165,14 +166,15 @@ if __name__ == '__main__':
 
     # style_bank = styleInput()
     from utils.utils import repackage_hidden
-    print(styler, flush=True)
+    # print(styler, flush=True)
     avg = []
-    for bank in range(120):
+    images = sorted(os.listdir(args.scene_dir), key=lambda x: int(x.split(".")[0]))
+    for bank in range(21):
         prev_state1 = None
         prev_state2 = None
-        for i in range(1, 10):
-            path = '%05d.jpg'%(i)
-            cimg = Image.open(os.path.join('/home/gaowei/IJCAI/videvo/videvo/test/WaterFall2/', path)).convert('RGB')
+        for i, f in enumerate(images):
+            print(i, bank, flush=True)
+            cimg = Image.open(os.path.join(args.scene_dir, f)).convert('RGB')
 
             cimg = content_tf(cimg).unsqueeze(0).cuda()
             cimg = vgg_norm(cimg)
@@ -182,7 +184,10 @@ if __name__ == '__main__':
 
             prev_state1 = repackage_hidden(prev_state1)
             prev_state2 = repackage_hidden(prev_state2)
-            save_image(out, 'output/%06d.jpg'%(i-1 + bank * 49))
+            if not os.path.exists(f"{args.save_dir}/{bank}"):
+                os.mkdir(f"{args.save_dir}/{bank}")
+
+            save_image(out, f"{args.save_dir}/{bank}/{i}.jpg")
     # mmcv.frames2video('output', 'mst_cat_flow.avi', fps=6)
 
 

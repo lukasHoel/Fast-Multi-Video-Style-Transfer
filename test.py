@@ -14,7 +14,7 @@ from network import net
 from network import styler
 from torchvision.utils import save_image
 
-import mmcv
+#import mmcv
 import time
 import logging
 from torch.autograd import Variable
@@ -48,6 +48,7 @@ parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--save_model_interval', type=int, default=10000)
 parser.add_argument('--parallel', action='store_true')
 parser.add_argument('--print_freq', type=int, default=20)
+parser.add_argument('--scene_dir', type=str, required=True)
 
 def train_transform():
     transform_list = [
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     styler = styler.ReCoNet()
     styler.eval()
-    styler.load_state_dict(torch.load('experiments/model_iter_10000.pth.tar')['state_dict'], strict=True)
+    styler.load_state_dict(torch.load('21style_nolstm_noflow.pth.tar', map_location="cpu")['state_dict'], strict=False)
     network = net.Net(styler, vgg=None)
     network = network.cuda()
     network.styler = network.styler.cuda()
@@ -87,16 +88,18 @@ if __name__ == '__main__':
 
     print('loading dataset done', flush=True)
 
-
-    for bank in range(10):
-        maxlen = 12
-        for i in range(1, maxlen):
+    images = sorted(os.listdir(args.scene_dir), key=lambda x: int(x.split(".")[0]))
+    for bank in range(21):
+        for i, f in enumerate(images):
             print(i, bank, flush=True)
-            path = '%05d.jpg'%(i)
-            cimg = Image.open(os.path.join('/data/gaowei/datasest/videvo/mini_train/Waterfall1/', path)).convert('RGB')
+            cimg = Image.open(os.path.join(args.scene_dir, f)).convert('RGB')
             cimg = content_tf(cimg).unsqueeze(0).cuda()
             out = network.evaluate(cimg, bank)
-            save_image(out, 'output/%06d.jpg'%(i-1 + bank * 11))
-    mmcv.frames2video('output', 'mst_cat_flow.avi', fps=6)
+            if not os.path.exists(f"{args.save_dir}/{bank}"):
+                os.mkdir(f"{args.save_dir}/{bank}")
+
+            save_image(out, f"{args.save_dir}/{bank}/{i}.jpg")
+
+    #mmcv.frames2video('output', 'mst_cat_flow.avi', fps=6)
 
 
