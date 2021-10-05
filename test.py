@@ -88,7 +88,8 @@ if __name__ == '__main__':
 
     print('loading dataset done', flush=True)
 
-    images = sorted(os.listdir(args.scene_dir), key=lambda x: int(x.split(".")[0]))
+    images = [f for f in os.listdir(args.scene_dir) if 'jpg' in f or 'png' in f]
+    images = sorted(images, key=lambda x: int(x.split(".")[0]))
     for bank in range(21):
         for i, f in enumerate(images):
             print(i, bank, flush=True)
